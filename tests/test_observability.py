@@ -19,19 +19,60 @@ The autograder does not import your test function names; rename them
 freely.
 """
 
+import json
+import logging
 import pytest
+from fastapi.testclient import TestClient
+from api.main import app
+from api.observability import requests_total
+
+@pytest.fixture
+def client():
+    return TestClient(app)
 
 
-def test_one():
+def test_one(client):
     # TODO: write a meaningful test of your observability layer here.
-    pytest.fail("Not implemented -- write your test here")
+    response = client.get("/healthz")
+    assert response.status_code == 200
+    assert "X-Request-ID" in response.headers
+    assert len(response.headers["X-Request-ID"]) >= 8
 
 
-def test_two():
+def test_two(client):
     # TODO: write a meaningful test of your observability layer here.
-    pytest.fail("Not implemented -- write your test here")
+    try:
+        initial_value = requests_total.labels(path="/healthz", status="200")._value.get()
+    except Exception:
+        initial_value = 0
+
+    response = client.get("/healthz")
+    assert response.status_code == 200
+
+    final_value = requests_total.labels(path="/healthz", status="200")._value.get()
+    assert final_value == initial_value + 1
 
 
-def test_three():
+def test_three(client, caplog):
     # TODO: write a meaningful test of your observability layer here.
-    pytest.fail("Not implemented -- write your test here")
+    with caplog.at_level(logging.INFO, logger="m11.api"):
+        response = client.get("/healthz")
+        assert response.status_code == 200
+        
+        request_id_from_header = response.headers.get("X-Request-ID")
+        assert request_id_from_header is not None
+
+        found_matching_log = False
+        for record in caplog.records:
+            try:
+                log_data = json.loads(record.message)
+                if log_data.get("request_id") == request_id_from_header:
+                    assert log_data["path"] == "/healthz"
+                    assert log_data["status"] == 200
+                    assert "latency_ms" in log_data
+                    found_matching_log = True
+                    break
+            except json.JSONDecodeError:
+                continue
+
+        assert found_matching_log, "Could not find structured JSON log line matching the request_id"
