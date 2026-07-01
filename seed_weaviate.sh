@@ -9,6 +9,16 @@
 # means the only host requirement is a running Docker stack.
 set -euo pipefail
 
+# Load .env if present so any WEAVIATE_URL override matches what Compose used.
+set -a
+[ -f .env ] && . ./.env
+set +a
+
+# Git Bash on Windows silently converts POSIX paths like `/app/api/seed_weaviate.py`
+# into Windows paths before passing them to docker.exe. `MSYS_NO_PATHCONV=1`
+# suppresses that conversion so the container receives the intended path.
+export MSYS_NO_PATHCONV=1
+
 echo "Seeding Weaviate via the api container ..."
 docker compose exec -T \
   -e WEAVIATE_URL="${WEAVIATE_URL:-http://weaviate:8080}" \

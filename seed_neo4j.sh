@@ -5,6 +5,13 @@
 # Run from the repo root: bash seed_neo4j.sh
 set -euo pipefail
 
+# Load .env if present so a learner-set NEO4J_PASSWORD matches the password
+# Docker Compose used to start the neo4j container. Without this the script
+# falls back to devpassword and authenticates with the wrong secret.
+set -a
+[ -f .env ] && . ./.env
+set +a
+
 NEO4J_PASSWORD="${NEO4J_PASSWORD:-devpassword}"
 NEO4J_USER="${NEO4J_USER:-neo4j}"
 SEED_FILE="api/seed.cypher"
