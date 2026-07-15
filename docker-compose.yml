@@ -1,5 +1,3 @@
-# M10 four-service stack with the M11 instrumentation hooks wired into `api`.
-# Learner brings up via: docker compose up -d
 version: "3.9"
 
 services:
@@ -49,19 +47,3 @@ services:
         condition: service_healthy
       weaviate:
         condition: service_healthy
-
-  # The web/ folder does not ship Next.js source in the Lab template, so this
-  # service fails to build on a fresh `docker compose up -d`. It is gated
-  # behind a `frontend` profile so the default `docker compose up -d` skips
-  # it; opt in with `docker compose --profile frontend up -d` if you also
-  # have the M10 frontend source mounted.
-  web:
-    profiles: ["frontend"]
-    build:
-      context: ./web
-    environment:
-      - NEXT_PUBLIC_API_URL=http://localhost:8000
-    ports:
-      - "3000:3000"
-    depends_on:
-      - api

@@ -32,11 +32,13 @@ from fastapi.middleware.cors import CORSMiddleware
 # TODO (learner): import the three middleware classes from api.observability.
 # Hint: RequestIdMiddleware, StructuredLoggingMiddleware, MetricsMiddleware.
 # ---------------------------------------------------------------------------
+from api.observability import RequestIdMiddleware, StructuredLoggingMiddleware, MetricsMiddleware
 
 # ---------------------------------------------------------------------------
 # TODO (learner): import make_asgi_app from prometheus_client so you can
 # mount /metrics below.
 # ---------------------------------------------------------------------------
+from prometheus_client import make_asgi_app
 
 from .deps import get_generator, get_nlp, get_session, get_weaviate
 from .kg import wrap_kg_query
@@ -136,11 +138,15 @@ app.add_middleware(
 # so the LAST add_middleware call is the OUTERMOST layer. You want:
 #     request-id outermost, structured-logging middle, metrics innermost.
 # ---------------------------------------------------------------------------
+app.add_middleware(MetricsMiddleware)
+app.add_middleware(StructuredLoggingMiddleware)
+app.add_middleware(RequestIdMiddleware)
 
 
 # ---------------------------------------------------------------------------
 # TODO (learner): mount /metrics on ``app`` using ``make_asgi_app()``.
 # ---------------------------------------------------------------------------
+app.mount("/metrics", make_asgi_app())
 
 
 # ---------------------------------------------------------------------------
